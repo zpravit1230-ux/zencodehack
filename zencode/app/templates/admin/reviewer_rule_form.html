@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 2rem auto;">
+  <div class="card">
+    <div class="card-header">
+      <a href="{{ url_for('admin.manager_profile') }}" class="icon-heading-link">
+        <h2>✏️ {{ title }}</h2>
+      </a>
+      <a href="{{ url_for('admin.manager_profile') }}" class="btn btn-sm btn-secondary">&larr; Back to Profile</a>
+    </div>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+      Assign custom review directives that apply specifically to the selected reviewer. Different reviewers can hold different focus areas and scopes.
+    </p>
+
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.reviewer_id.label(class="form-label") }}
+        {{ form.reviewer_id(class="form-control" + (" is-invalid" if form.reviewer_id.errors else "")) }}
+        {% for error in form.reviewer_id.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">Choose the reviewer who owns this review directive.</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), placeholder="e.g. Strict Launch Price & Spec Cross-Check", autofocus=True) }}
+        {% for error in form.title.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">Brief, clear name for this review requirement.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          {{ form.category.label(class="form-label") }}
+          {{ form.category(class="form-control" + (" is-invalid" if form.category.errors else "")) }}
+          {% for error in form.category.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.severity.label(class="form-label") }}
+          {{ form.severity(class="form-control" + (" is-invalid" if form.severity.errors else "")) }}
+          {% for error in form.severity.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        {{ form.instructions.label(class="form-label") }}
+        {{ form.instructions(class="form-control" + (" is-invalid" if form.instructions.errors else ""), rows="4", placeholder="e.g. Before approving any material mentioning Lumora Plus, cross-check that price is exactly Rs. 2,499 and warranty is 2 years. If discrepancies exist, request revision.") }}
+        {% for error in form.instructions.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">Explain exactly what this reviewer must check and verify before approval.</div>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+        {{ form.active(id="active") }}
+        <label for="active" style="font-weight: 600; cursor: pointer;">Enable rule immediately for this reviewer</label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('admin.manager_profile') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ action }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

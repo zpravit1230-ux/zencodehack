@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Manager Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Brand Operations Dashboard</h1>
+    <p style="color: var(--text-muted);">Overview of brand guidelines, team members, content review workflows, and compliance health.</p>
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <a href="{{ url_for('guidelines.list_guidelines') }}" class="btn btn-secondary">Edit Guidelines</a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Manage Team</a>
+    <a href="{{ url_for('content.new_content') }}" class="btn btn-primary">+ New Content</a>
+  </div>
+</div>
+
+<div class="grid-4" style="margin-bottom: 2rem;">
+  <a href="#recent-activity" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number">{{ total_contents }}</div>
+    <div class="stat-label">📁 Total Submissions &rarr;</div>
+  </a>
+  <a href="{{ url_for('main.reviewer_dashboard') }}" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--info);">{{ waiting_review }}</div>
+    <div class="stat-label">⏳ In Review Queue &rarr;</div>
+  </a>
+  <a href="{{ url_for('admin.reports') }}" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--success);">{{ approved_total }}</div>
+    <div class="stat-label">✓ Approved &rarr;</div>
+  </a>
+  <a href="{{ url_for('admin.manager_profile') }}" class="stat-card card-clickable" style="text-decoration:none;" title="View customized reviewer rules">
+    <div class="stat-number" style="color: var(--warning);">{{ reviewer_rules_count }}</div>
+    <div class="stat-label">🎯 Reviewer Directives &rarr;</div>
+  </a>
+</div>
+
+<div class="card" id="recent-activity">
+  <div class="card-header">
+    <a href="#recent-activity" class="icon-heading-link">
+      <h2>⚡ Recent Activity Across BrandGuard</h2>
+    </a>
+    <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-secondary">Full Audit Log</a>
+  </div>
+
+  {% if recent_contents %}
+    <div class="table-responsive">
+      <table class="table" aria-label="Recent submissions list">
+        <thead>
+          <tr>
+            <th>Content</th>
+            <th>Creator</th>
+            <th>Status</th>
+            <th>Issues</th>
+            <th>Last Updated</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_contents %}
+            {% set v = item.latest_version %}
+            <tr>
+              <td><strong>{{ item.title }}</strong></td>
+              <td>{{ item.creator.full_name }}</td>
+              <td>
+                <span class="badge badge-{% if 'Approved' in v.status %}success{% elif v.status == 'Needs Fixes' %}serious{% elif v.status == 'Waiting for Review' %}info{% else %}neutral{% endif %}">
+                  {{ v.status }}
+                </span>
+              </td>
+              <td>
+                {% if v.serious_issues_count > 0 %}
+                  <span class="badge badge-serious">{{ v.serious_issues_count }} Serious</span>
+                {% elif v.warning_issues_count > 0 %}
+                  <span class="badge badge-warning">{{ v.warning_issues_count }} Warning</span>
+                {% else %}
+                  <span class="badge badge-success">Clean</span>
+                {% endif %}
+              </td>
+              <td>{{ item.updated_at.strftime('%b %d, %Y %H:%M') }}</td>
+              <td>
+                <a href="{{ url_for('content.content_detail', content_id=item.id) }}" class="btn btn-sm btn-secondary">View Detail</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No content records found.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

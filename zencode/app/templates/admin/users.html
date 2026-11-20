@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Team Users - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Team Member Access Control</h1>
+    <p style="color: var(--text-muted);">Manage team permissions and roles across Creator, Reviewer, and Manager tiers.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <a href="{{ url_for('admin.users') }}" class="icon-heading-link" title="Click to refresh team users">
+      <h2>👥 Registered Users ({{ users|length }})</h2>
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Team users table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Current Role</th>
+          <th>Security Status</th>
+          <th>Registered</th>
+          <th>Change Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>
+              <strong>{{ u.full_name }}</strong>
+              {% if u.id == current_user.id %}
+                <span class="badge badge-info" style="font-size:0.65rem; margin-left:0.3rem;">You</span>
+              {% endif %}
+            </td>
+            <td><code>{{ u.email }}</code></td>
+            <td>
+              <span class="badge badge-{% if u.role_name == 'Manager' %}serious{% elif u.role_name == 'Reviewer' %}warning{% else %}neutral{% endif %}">
+                {{ u.role_name }}
+              </span>
+              {% if u.role_name in ['Reviewer', 'Manager'] %}
+                <div style="margin-top: 0.25rem;">
+                  <a href="{{ url_for('admin.manager_profile', reviewer_id=u.id) }}" style="font-size: 0.775rem; text-decoration: none;" title="Configure rules tailored to this reviewer">
+                    📋 Review Rules
+                  </a>
+                </div>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_locked %}
+                <span class="badge badge-serious">Locked (Failed Logins)</span>
+              {% else %}
+                <span class="badge badge-success">Active</span>
+              {% endif %}
+            </td>
+            <td>{{ u.created_at.strftime('%b %d, %Y') }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('admin.update_user_role', user_id=u.id) }}" style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="role_name" class="form-control" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; width: auto;" aria-label="Select role for {{ u.full_name }}">
+                  {% for r in roles %}
+                    <option value="{{ r.name }}" {% if u.role_name == r.name %}selected{% endif %}>{{ r.name }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-secondary">Apply</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

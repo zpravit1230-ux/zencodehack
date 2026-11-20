@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Register - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+  <div class="card">
+    <div class="card-header">
+      <a href="{{ url_for('auth.register') }}" class="icon-heading-link" title="Click to refresh registration">
+        <h2>✨ Create Your Account</h2>
+      </a>
+      <span class="badge badge-info">Role: Creator</span>
+    </div>
+    
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+      New accounts join as <strong>Creator</strong> by default. A team Manager can assign Reviewer or Manager roles from the Users panel.
+    </p>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.full_name.label(class="form-label") }}
+        {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder="e.g. Maya Sharma", autofocus=True) }}
+        {% for error in form.full_name.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="maya@lumora.demo") }}
+        {% for error in form.email.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="At least 8 chars with letter & number") }}
+        {% for error in form.password.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">Must be at least 8 characters long and include both letters and numbers.</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.confirm_password.label(class="form-label") }}
+        {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Re-enter password") }}
+        {% for error in form.confirm_password.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+    </form>
+
+    <div style="margin-top: 1.25rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign In</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

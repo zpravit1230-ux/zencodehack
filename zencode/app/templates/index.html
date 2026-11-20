@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}BrandGuard AI - One Shared Set of Brand Rules{% endblock %}
+
+{% block content %}
+<div style="text-align: center; max-width: 800px; margin: 3rem auto;">
+  <span class="badge badge-info" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; margin-bottom: 1rem;">Content Safety &amp; Brand Consistency</span>
+  <h1 style="font-size: 2.75rem; margin: 0.5rem 0 1rem; color: var(--primary);">Catch brand mistakes before content goes public.</h1>
+  <p style="font-size: 1.2rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 2rem;">
+    One shared set of brand rules, one clear review before publishing. People stay in charge: creators make changes, reviewers make the final decision.
+  </p>
+
+  <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem;">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 1.1rem;">Sign In to Review Space</a>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 1.1rem;">Create Account</a>
+  </div>
+
+  <div class="grid-3" style="text-align: left; margin-top: 2rem;">
+    <a href="{{ url_for('auth.login', role='creator') }}" class="card card-clickable" aria-label="Sign in as Creator">
+      <div style="font-size: 2.2rem; margin-bottom: 0.5rem;" aria-hidden="true">✍️</div>
+      <h3 class="icon-heading-link">Creators Write &amp; Fix &rarr;</h3>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Upload copy, drafts, or marketing assets. Get instant feedback on banned words, tone, and accuracy.</p>
+      <span class="badge badge-info" style="margin-top: 0.75rem; font-size: 0.75rem;">Try Creator Demo &rarr;</span>
+    </a>
+
+    <a href="{{ url_for('auth.login', role='reviewer') }}" class="card card-clickable" aria-label="Sign in as Reviewer">
+      <div style="font-size: 2.2rem; margin-bottom: 0.5rem;" aria-hidden="true">🛡️</div>
+      <h3 class="icon-heading-link">Reviewers Guard &rarr;</h3>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Review queue with safeguards. Block serious issues, approve clean work, or grant justified exceptions.</p>
+      <span class="badge badge-warning" style="margin-top: 0.75rem; font-size: 0.75rem;">Try Reviewer Demo &rarr;</span>
+    </a>
+
+    <a href="{{ url_for('auth.login', role='manager') }}" class="card card-clickable" aria-label="Sign in as Manager">
+      <div style="font-size: 2.2rem; margin-bottom: 0.5rem;" aria-hidden="true">⚙️</div>
+      <h3 class="icon-heading-link">Managers Guide &rarr;</h3>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Manage brand guidelines, approve facts, colors, and tone, while auditing all team decisions.</p>
+      <span class="badge badge-serious" style="margin-top: 0.75rem; font-size: 0.75rem;">Try Manager Demo &rarr;</span>
+    </a>
+  </div>
+</div>
+{% endblock %}
+

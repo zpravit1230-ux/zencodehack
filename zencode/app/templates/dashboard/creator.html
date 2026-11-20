@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Creator Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Creator Workspace</h1>
+    <p style="color: var(--text-muted);">Manage your content submissions, review flagged brand issues, and upload revisions.</p>
+  </div>
+  <a href="{{ url_for('content.new_content') }}" class="btn btn-primary">+ Submit New Content</a>
+</div>
+
+<div class="grid-3" style="margin-bottom: 2rem;">
+  <a href="#your-content" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number">{{ contents|length }}</div>
+    <div class="stat-label">📁 Total Submissions &rarr;</div>
+  </a>
+  <a href="#your-content" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--warning);">{{ pending_fix_count }}</div>
+    <div class="stat-label">⚠️ Needs Fixes &rarr;</div>
+  </a>
+  <a href="#your-content" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--success);">{{ approved_count }}</div>
+    <div class="stat-label">✓ Approved &rarr;</div>
+  </a>
+</div>
+
+<div class="card" id="your-content">
+  <div class="card-header">
+    <a href="#your-content" class="icon-heading-link">
+      <h2>📁 Your Content</h2>
+    </a>
+  </div>
+
+  {% if contents %}
+    <div class="table-responsive">
+      <table class="table" aria-label="Creator content list">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Latest Version</th>
+            <th>Status</th>
+            <th>Open Issues</th>
+            <th>Updated</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in contents %}
+            {% set v = item.latest_version %}
+            <tr>
+              <td><strong>{{ item.title }}</strong></td>
+              <td>v{{ v.version_number if v else '1' }} ({{ v.file_type if v else 'text' }})</td>
+              <td>
+                {% if v.status == 'Approved' %}
+                  <span class="badge badge-success">Approved</span>
+                {% elif v.status == 'Approved with Exception' %}
+                  <span class="badge badge-warning">Approved (Exception)</span>
+                {% elif v.status == 'Needs Fixes' %}
+                  <span class="badge badge-serious">Needs Fixes</span>
+                {% elif v.status == 'Waiting for Review' %}
+                  <span class="badge badge-info">Waiting for Review</span>
+                {% elif v.status == 'Rejected' %}
+                  <span class="badge badge-serious">Rejected</span>
+                {% else %}
+                  <span class="badge badge-neutral">{{ v.status if v else 'Draft' }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if v %}
+                  {% if v.serious_issues_count > 0 %}
+                    <span class="badge badge-serious">{{ v.serious_issues_count }} Serious</span>
+                  {% endif %}
+                  {% if v.warning_issues_count > 0 %}
+                    <span class="badge badge-warning">{{ v.warning_issues_count }} Warning</span>
+                  {% endif %}
+                  {% if v.serious_issues_count == 0 and v.warning_issues_count == 0 %}
+                    <span class="badge badge-success">0 Issues</span>
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ item.updated_at.strftime('%b %d, %Y %H:%M') }}</td>
+              <td>
+                <a href="{{ url_for('content.content_detail', content_id=item.id) }}" class="btn btn-sm btn-secondary">Open Review</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <a href="{{ url_for('content.new_content') }}" class="icon-heading-link" style="flex-direction: column;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;" aria-hidden="true">📝</div>
+        <h3>No content submissions yet &rarr;</h3>
+      </a>
+      <p style="margin: 0.75rem 0 1.25rem;">Start by submitting marketing copy, a flyer, or an image for brand rule verification.</p>
+      <a href="{{ url_for('content.new_content') }}" class="btn btn-primary">+ Submit First Content</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

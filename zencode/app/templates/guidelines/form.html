@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 2rem auto;">
+  <div class="card">
+    <div class="card-header">
+      <a href="{{ url_for('guidelines.list_guidelines') }}" class="icon-heading-link" title="Click to back to guidelines">
+        <h2>✏️ {{ title }}</h2>
+      </a>
+      <a href="{{ url_for('guidelines.list_guidelines') }}" class="btn btn-sm btn-secondary">&larr; Back to Guidelines</a>
+    </div>
+
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.type.label(class="form-label") }}
+        {{ form.type(class="form-control" + (" is-invalid" if form.type.errors else "")) }}
+        {% for error in form.type.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.key.label(class="form-label") }}
+        {{ form.key(class="form-control" + (" is-invalid" if form.key.errors else ""), placeholder="e.g. Lumora Pro, Price, 100% satisfaction, Exclamations") }}
+        {% for error in form.key.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">The term, spec, claim, or pattern to detect.</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.value.label(class="form-label") }}
+        {{ form.value(class="form-control" + (" is-invalid" if form.value.errors else ""), rows="3", placeholder="e.g. Replace with 'Lumora Plus', Rs. 2,499, Maximum 1 per document") }}
+        {% for error in form.value.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">The preferred name, approved value, or guidance instructions.</div>
+      </div>
+
+      <div class="form-group">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), placeholder="e.g. Lumora Pro was an early internal prototype name.") }}
+        {% for error in form.description.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <div class="form-text">Explain why this rule matters to help creators understand.</div>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+        {{ form.active(id="active") }}
+        <label for="active" style="font-weight: 600; cursor: pointer;">Enable rule immediately for content checks</label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('guidelines.list_guidelines') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ action }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

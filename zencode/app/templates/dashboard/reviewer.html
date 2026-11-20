@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Reviewer Queue - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Reviewer Queue</h1>
+    <p style="color: var(--text-muted);">Independent content verification. Guard brand consistency and make final publishing decisions.</p>
+  </div>
+  <a href="{{ url_for('content.new_content') }}" class="btn btn-secondary">+ Submit Content</a>
+</div>
+
+<div class="grid-3" style="margin-bottom: 2rem;">
+  <a href="#review-queue-table" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--info);">{{ waiting_review_count }}</div>
+    <div class="stat-label">⏳ Ready for Review &rarr;</div>
+  </a>
+  <a href="#review-queue-table" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--warning);">{{ needs_fix_count }}</div>
+    <div class="stat-label">🛠️ Pending Creator Fixes &rarr;</div>
+  </a>
+  <a href="#review-queue-table" class="stat-card card-clickable" style="text-decoration:none;">
+    <div class="stat-number" style="color: var(--success);">{{ reviewed_by_me_count }}</div>
+    <div class="stat-label">✓ Decisions by You &rarr;</div>
+  </a>
+</div>
+
+{% if my_reviewer_rules %}
+<div class="card" style="margin-bottom: 2rem; background: var(--bg-subtle); border-left: 4px solid var(--primary);">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span style="font-size: 1.3rem;">🎯</span>
+      <div>
+        <h3 style="margin:0; font-size:1.05rem;">Your Assigned Review Directives</h3>
+        <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Custom instructions configured specifically for your review workflow by brand management.</p>
+      </div>
+    </div>
+    <span class="badge badge-primary">{{ my_reviewer_rules|length }} Active Rules</span>
+  </div>
+
+  <div class="grid-2" style="margin-top: 1rem; gap: 1rem;">
+    {% for r in my_reviewer_rules %}
+      <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <span class="badge badge-{% if r.category == 'WORDS' %}info{% elif r.category == 'DETAILS' %}warning{% elif r.category == 'PROMISES' %}serious{% elif r.category == 'TONE' %}primary{% else %}neutral{% endif %}">
+            {{ r.category }}
+          </span>
+          <span class="badge badge-{% if r.severity == 'Mandatory' %}serious{% else %}neutral{% endif %}" style="font-size:0.7rem;">
+            {{ r.severity }}
+          </span>
+        </div>
+        <strong>{{ r.title }}</strong>
+        <p style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.3rem; line-height: 1.4;">{{ r.instructions }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card" id="review-queue-table">
+  <div class="card-header">
+    <a href="#review-queue-table" class="icon-heading-link">
+      <h2>🛡️ Submissions Awaiting Review</h2>
+    </a>
+  </div>
+
+  {% if review_items %}
+    <div class="table-responsive">
+      <table class="table" aria-label="Review queue list">
+        <thead>
+          <tr>
+            <th>Content Title</th>
+            <th>Creator</th>
+            <th>Version</th>
+            <th>Status</th>
+            <th>Open Issues</th>
+            <th>Submitted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in review_items %}
+            {% set v = item.latest_version %}
+            <tr>
+              <td><strong>{{ item.title }}</strong></td>
+              <td>{{ item.creator.full_name }}</td>
+              <td>v{{ v.version_number if v else '1' }} ({{ v.file_type if v else 'text' }})</td>
+              <td>
+                {% if v.status == 'Waiting for Review' %}
+                  <span class="badge badge-info">Waiting for Review</span>
+                {% elif v.status == 'Needs Fixes' %}
+                  <span class="badge badge-serious">Needs Fixes</span>
+                {% else %}
+                  <span class="badge badge-neutral">{{ v.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if v.serious_issues_count > 0 %}
+                  <span class="badge badge-serious">{{ v.serious_issues_count }} Serious (Blocks Approval)</span>
+                {% elif v.warning_issues_count > 0 %}
+                  <span class="badge badge-warning">{{ v.warning_issues_count }} Warning</span>
+                {% else %}
+                  <span class="badge badge-success">Clean (0 Issues)</span>
+                {% endif %}
+              </td>
+              <td>{{ v.created_at.strftime('%b %d, %Y %H:%M') if v else item.updated_at.strftime('%b %d, %Y') }}</td>
+              <td>
+                <a href="{{ url_for('content.content_detail', content_id=item.id) }}" class="btn btn-sm btn-primary">Review &amp; Decide</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <a href="{{ url_for('content.new_content') }}" class="icon-heading-link" style="flex-direction: column;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;" aria-hidden="true">✨</div>
+        <h3>Review queue is clear!</h3>
+      </a>
+      <p style="margin-top: 0.5rem;">There are no submissions currently pending your review decision.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

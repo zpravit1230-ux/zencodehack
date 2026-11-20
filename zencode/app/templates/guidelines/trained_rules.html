@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Trained Governance Dataset (BG001-BG020) - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Trained Brand Governance Dataset</h1>
+    <p style="color: var(--text-muted);">
+      Official 20-rule BrandGuard AI training dataset (BG001 - BG020). Powers automated pre-publication content inspection and reviewer checklists.
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.5rem; align-items: center;">
+    <a href="{{ url_for('guidelines.list_guidelines') }}" class="btn btn-secondary">&larr; Back to Guidelines</a>
+    <form method="POST" action="{{ url_for('guidelines.train_dataset') }}" style="display: inline;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary" title="Sync and train rules from dataset">
+        ⚡ Re-train / Sync Dataset
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Dataset Stats Summary -->
+<div class="grid-4" style="margin-bottom: 2rem;">
+  <div class="stat-card">
+    <div class="stat-number" style="color: var(--primary);">{{ rules|length }}</div>
+    <div class="stat-label">Trained Rules</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color: var(--danger);">{{ severities['Critical'] }}</div>
+    <div class="stat-label">Critical Safeguards</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color: var(--warning);">{{ severities['High'] }}</div>
+    <div class="stat-label">High Severity Rules</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color: var(--info);">{{ categories|length }}</div>
+    <div class="stat-label">Brand Categories</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <a href="{{ url_for('guidelines.trained_rules') }}" class="icon-heading-link">
+      <h2>📋 Rule Definitions &amp; Example Violations (BG001 - BG020)</h2>
+    </a>
+    <span class="badge badge-success">Active Trained Model</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Trained brand rules table">
+      <thead>
+        <tr>
+          <th style="width: 85px;">ID</th>
+          <th>Rule Name &amp; Description</th>
+          <th>Category</th>
+          <th>Severity</th>
+          <th>Applicable Channels</th>
+          <th>Example Violation</th>
+          <th>Recommended Correction</th>
+          <th>Roles</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rules %}
+          <tr>
+            <td>
+              <code style="font-weight: 700; color: var(--primary); font-size: 0.85rem;">{{ r.rule_id }}</code>
+            </td>
+            <td>
+              <strong>{{ r.rule_name }}</strong>
+              <div style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.25rem; line-height: 1.4;">
+                {{ r.rule_description }}
+              </div>
+            </td>
+            <td>
+              <span class="badge badge-neutral" style="font-size: 0.75rem;">{{ r.category }}</span>
+            </td>
+            <td>
+              <span class="badge badge-{% if r.severity in ['Critical', 'High'] %}serious{% elif r.severity == 'Medium' %}warning{% else %}info{% endif %}">
+                {{ r.severity }}
+              </span>
+            </td>
+            <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 140px;">
+              {{ r.applicable_channels }}
+            </td>
+            <td style="max-width: 220px; font-size: 0.825rem; color: var(--danger); font-family: monospace; background: var(--bg-subtle); padding: 0.35rem 0.5rem; border-radius: 4px;">
+              {{ r.example_violation }}
+            </td>
+            <td style="max-width: 240px; font-size: 0.825rem; color: var(--success); line-height: 1.35;">
+              {{ r.recommended_correction }}
+            </td>
+            <td style="font-size: 0.775rem; white-space: nowrap; color: var(--text-muted);">
+              {{ r.responsible_roles }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

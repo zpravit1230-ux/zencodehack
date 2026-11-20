@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Audit &amp; History Log - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Audit &amp; Activity Log</h1>
+    <p style="color: var(--text-muted);">Immutable audit trail tracking all team actions, logins, rule evaluations, and review decisions. Read-only.</p>
+  </div>
+  <span class="badge badge-neutral" style="padding: 0.4rem 0.8rem;">🔒 System Enforced Immutability</span>
+</div>
+
+<!-- Filters Card -->
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <form method="GET" action="{{ url_for('admin.audit_logs') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 200px;">
+      <label for="user" class="form-label" style="font-size: 0.825rem;">Filter by User Email</label>
+      <input type="text" id="user" name="user" class="form-control" placeholder="e.g. priya@lumora.demo" value="{{ user_filter }}">
+    </div>
+
+    <div style="flex: 1; min-width: 180px;">
+      <label for="action" class="form-label" style="font-size: 0.825rem;">Filter by Action</label>
+      <select id="action" name="action" class="form-control">
+        <option value="">All Actions</option>
+        {% for act in action_list %}
+          <option value="{{ act }}" {% if action_filter == act %}selected{% endif %}>{{ act }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-secondary btn-sm">Reset</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <a href="{{ url_for('admin.audit_logs') }}" class="icon-heading-link" title="Click to view all audit logs">
+      <h2>⚡ Event History ({{ logs|length }} records)</h2>
+    </a>
+  </div>
+
+  {% if logs %}
+    <div class="table-responsive">
+      <table class="table" aria-label="Audit events table">
+        <thead>
+          <tr>
+            <th>Timestamp (UTC)</th>
+            <th>User</th>
+            <th>Role</th>
+            <th>Action</th>
+            <th>Event Details</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+            <tr>
+              <td style="white-space: nowrap; font-size: 0.825rem; font-family: monospace;">
+                {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+              </td>
+              <td>{{ log.user_email or 'System / Guest' }}</td>
+              <td>
+                <span class="badge badge-{% if log.user_role == 'Manager' %}serious{% elif log.user_role == 'Reviewer' %}warning{% else %}neutral{% endif %}">
+                  {{ log.user_role or 'System' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge-{% if 'BLOCKED' in log.action or 'LOCKOUT' in log.action %}serious{% elif 'EXCEPTION' in log.action or 'FAILED' in log.action %}warning{% elif 'SUCCESS' in log.action or 'APPROVE' in log.action %}success{% else %}info{% endif %}">
+                  {{ log.action }}
+                </span>
+              </td>
+              <td style="max-width: 450px; font-size: 0.85rem; word-break: break-word;">
+                {{ log.details }}
+              </td>
+              <td style="font-size: 0.775rem; color: var(--text-muted); font-family: monospace;">
+                {{ log.ip_address or '127.0.0.1' }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No audit log events match the selected criteria.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

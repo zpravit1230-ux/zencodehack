@@ -1,0 +1,572 @@
+{% extends "base.html" %}
+
+{% block title %}{{ content.title }} - AI Document Review Space - {{ app_name }}{% endblock %}
+
+{% block content %}
+<!-- Top Header & Document Metadata -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+  <div>
+    <span style="font-size: 0.85rem; color: var(--text-muted);">
+      Document Review &bull; ID #{{ content.id }} &bull; Submitted by <strong>{{ content.creator.full_name }}</strong> &bull; Format: <strong>{{ version.file_type|upper }}</strong>
+    </span>
+    <h1 style="margin-top: 0.2rem; font-size: 1.75rem;">{{ content.title }}</h1>
+  </div>
+  
+  <!-- Status Badge & Export Toolbar -->
+  <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+    {% if version.status in ['Approved', 'Approve'] %}
+      <span class="badge badge-success" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">✓ Approved</span>
+    {% elif 'Exception' in version.status %}
+      <span class="badge badge-warning" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">⚠ Approved with Exception</span>
+    {% elif version.status == 'Needs Fixes' %}
+      <span class="badge badge-serious" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">✕ Needs Fixes</span>
+    {% elif version.status == 'Waiting for Review' %}
+      <span class="badge badge-info" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">⏳ Waiting for Review</span>
+    {% elif version.status in ['Rejected', 'Reject'] %}
+      <span class="badge badge-serious" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">✕ Rejected</span>
+    {% else %}
+      <span class="badge badge-neutral" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;">{{ version.status }}</span>
+    {% endif %}
+
+    <!-- Export Action Dropdown / Buttons -->
+    <a href="{{ url_for('content.export_pdf', content_id=content.id, v=version.version_number) }}" class="btn btn-sm btn-primary" title="Download Official PDF Audit Report">
+      📄 Export PDF Report
+    </a>
+    <a href="{{ url_for('content.export_excel', content_id=content.id, v=version.version_number) }}" class="btn btn-sm btn-secondary" title="Download Excel Issues Summary Spreadsheet">
+      📊 Export Excel
+    </a>
+    <a href="{{ url_for('content.export_corrected', content_id=content.id, v=version.version_number) }}" class="btn btn-sm btn-secondary" title="Download Live Corrected Document Text">
+      ✍️ Download Corrected Text
+    </a>
+    <a href="{{ url_for('content.export_original', content_id=content.id, v=version.version_number) }}" class="btn btn-sm btn-secondary" title="Download Original Submitted File">
+      📎 Original File
+    </a>
+  </div>
+</div>
+
+<!-- CORE WORKFLOW: 6-STEP PROGRESS STEPPER -->
+<div class="stepper" aria-label="Review Workflow Progress Stepper">
+  <a href="{{ url_for('content.new_content') }}" class="step-item {% if step >= 1 %}completed{% endif %}" title="Click to Add New Content">
+    <div class="step-circle">1</div>
+    <span class="step-label">Add Content</span>
+  </a>
+  <a href="#content-inspection" class="step-item {% if step >= 2 %}completed{% endif %}" title="Click to Read Extracted Text">
+    <div class="step-circle">2</div>
+    <span class="step-label">Read It</span>
+  </a>
+  <a href="#key-details" class="step-item {% if step >= 3 %}completed{% endif %}" title="Click to View Checked Details">
+    <div class="step-circle">3</div>
+    <span class="step-label">Check It</span>
+  </a>
+  <a href="#brand-issues" class="step-item {% if step == 4 %}active{% elif step > 4 %}completed{% endif %}" title="Click to Jump to Issues List">
+    <div class="step-circle">4</div>
+    <span class="step-label">Show Issues</span>
+  </a>
+  <a href="#reviewer-decision" class="step-item {% if step == 5 %}active{% elif step > 5 %}completed{% endif %}" title="Click to Jump to Review Decision">
+    <div class="step-circle">5</div>
+    <span class="step-label">Review</span>
+  </a>
+  <a href="#reviewer-decision" class="step-item {% if step == 6 %}completed{% endif %}" title="Click to View Final Saved Decision">
+    <div class="step-circle">6</div>
+    <span class="step-label">Save &amp; Keep</span>
+  </a>
+</div>
+
+<!-- Version Switcher Tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+  <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-right: 0.5rem;">Versions:</span>
+  {% for v in versions %}
+    <a href="{{ url_for('content.content_detail', content_id=content.id, v=v.version_number) }}" 
+       class="btn btn-sm {% if v.version_number == version.version_number %}btn-primary{% else %}btn-secondary{% endif %}">
+      v{{ v.version_number }}
+      {% if v.version_number == content.latest_version.version_number %}
+        <span style="font-size: 0.7rem; opacity: 0.85;">(Latest)</span>
+      {% endif %}
+      &bull; {{ v.status }}
+    </a>
+  {% endfor %}
+</div>
+
+<!-- ========================================================================= -->
+<!-- SECTION 7: OVERALL REVIEW DASHBOARD & SUMMARY KPI CARDS -->
+<!-- ========================================================================= -->
+<div class="card" style="margin-bottom: 1.5rem; border-top: 4px solid var(--primary);">
+  <div class="card-header">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span style="font-size: 1.4rem;">📊</span>
+      <div>
+        <h2 style="font-size: 1.2rem; margin: 0;">AI Document Review Summary &amp; Quality Metrics</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+          Comprehensive multi-page analysis evaluated against Lumora Brand Guidelines and the 20 Governance Safeguards.
+        </p>
+      </div>
+    </div>
+    <span class="badge badge-neutral">Pages Analyzed: {{ pages|length }}</span>
+  </div>
+
+  <div class="grid-4" style="margin-top: 1rem; gap: 1rem;">
+    <!-- Quality Score -->
+    <div class="stat-card" style="display: flex; align-items: center; gap: 1rem; justify-content: flex-start; text-align: left;">
+      <div class="score-circle-widget">
+        <span id="metric-quality-score" style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">{{ version.quality_score }}</span>
+        <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">OUT OF 100</span>
+      </div>
+      <div>
+        <div style="font-weight: 700; font-size: 0.95rem;">Quality Score</div>
+        <div style="font-size: 0.775rem; color: var(--text-muted);">Overall clarity, grammar &amp; readability</div>
+      </div>
+    </div>
+
+    <!-- Compliance Percentage -->
+    <div class="stat-card" style="text-align: left;">
+      <div id="metric-compliance-score" class="stat-number" style="color: {% if version.compliance_score >= 80 %}var(--success){% elif version.compliance_score >= 50 %}var(--warning){% else %}var(--danger){% endif %};">
+        {{ version.compliance_score }}%
+      </div>
+      <div class="stat-label">Brand Compliance</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Adherence to brand rules &amp; policies</div>
+    </div>
+
+    <!-- Issues Severity Breakdown -->
+    <div class="stat-card" style="text-align: left;">
+      <div class="stat-number" style="color: var(--text-main);">{{ version.total_issues_count }}</div>
+      <div class="stat-label">Total Issues Detected</div>
+      <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <span class="badge badge-serious" style="font-size: 0.65rem;" title="Critical / Serious">Critical: {{ version.critical_issues_count }}</span>
+        <span class="badge badge-serious" style="font-size: 0.65rem;" title="High Priority">High: {{ version.high_issues_count }}</span>
+        <span class="badge badge-warning" style="font-size: 0.65rem;" title="Medium Priority">Med: {{ version.medium_issues_count }}</span>
+        <span class="badge badge-info" style="font-size: 0.65rem;" title="Low Priority / Info">Low: {{ version.low_issues_count }}</span>
+      </div>
+    </div>
+
+    <!-- Resolution & Suggestion Progress -->
+    <div class="stat-card" style="text-align: left;">
+      <div class="stat-number" style="color: var(--success);">{{ version.accepted_issues_count }}</div>
+      <div class="stat-label">Suggestions Accepted / Applied</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+        {{ version.open_issues_count }} Open &bull; {{ version.rejected_issues_count }} Rejected
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Breakdown Progress Bars -->
+  <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+        7 AI Review Categories Performance
+      </span>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Higher is better (100% = No open violations)</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      {% set scores = version.category_scores %}
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Grammar &amp; Language</span>
+          <span>{{ scores.get('WORDS', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('WORDS', 100) }}%; height: 100%; background: var(--info);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Brand Guidelines</span>
+          <span>{{ scores.get('WORDS', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('WORDS', 100) }}%; height: 100%; background: var(--primary);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Factual Accuracy</span>
+          <span>{{ scores.get('DETAILS', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('DETAILS', 100) }}%; height: 100%; background: var(--warning);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Marketing Claims &amp; Guarantees</span>
+          <span>{{ scores.get('PROMISES', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('PROMISES', 100) }}%; height: 100%; background: var(--danger);"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Tone &amp; Communication</span>
+          <span>{{ scores.get('TONE', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('TONE', 100) }}%; height: 100%; background: #d97706;"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
+          <span>Accessibility &amp; Formatting</span>
+          <span>{{ scores.get('DESIGN', 100) }}%</span>
+        </div>
+        <div style="height: 6px; background: var(--bg-subtle); border-radius: 3px; overflow: hidden;">
+          <div style="width: {{ scores.get('DESIGN', 100) }}%; height: 100%; background: #059669;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- SECTION 8: DUAL-PANEL REVIEW WORKSPACE (PAGE-BY-PAGE INSPECTION) -->
+<!-- ========================================================================= -->
+<div class="review-workspace" id="review-workspace" data-content-id="{{ content.id }}">
+  
+  <!-- LEFT PANEL: DOCUMENT VIEWER & PAGE NAVIGATOR -->
+  <div class="doc-viewer-card" id="content-inspection">
+    <!-- Viewer Top Toolbar -->
+    <div class="doc-viewer-header">
+      <div class="doc-page-nav">
+        <button type="button" class="btn btn-sm btn-secondary" id="prev-page-btn" title="Previous Page">&larr; Prev</button>
+        <span style="font-size: 0.85rem; font-weight: 600;">
+          Page <span id="current-page-display">1</span> of {{ pages|length }}
+        </span>
+        <button type="button" class="btn btn-sm btn-secondary" id="next-page-btn" title="Next Page">Next &rarr;</button>
+
+        {% if pages|length > 1 %}
+          <select id="page-jump-select" class="form-control" style="width: auto; padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-left: 0.5rem;">
+            {% for p in pages %}
+              <option value="{{ p.page_number }}">{{ p.heading }} (p.{{ p.page_number }})</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </div>
+
+      <!-- View Mode Selector -->
+      <div style="display: flex; gap: 0.25rem;">
+        <button type="button" id="tab-view-original" class="btn btn-sm btn-primary" title="View original extracted text with problematic highlights">
+          Original View
+        </button>
+        <button type="button" id="tab-view-corrected" class="btn btn-sm btn-secondary" title="View live document preview with accepted suggestions applied">
+          Live Corrected
+        </button>
+      </div>
+    </div>
+
+    <!-- Original View Wrap (with highlighted problematic snippets) -->
+    <div id="view-original-wrap">
+      {% for p in pages %}
+        <div class="doc-page-container" data-page-num="{{ p.page_number }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+          <div style="padding: 0.5rem 1.25rem; background: var(--bg-subtle); border-bottom: 1px dashed var(--border); font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+            {{ p.heading }}
+          </div>
+          <div class="doc-page-body" id="doc-page-text-{{ p.page_number }}">{{ p.text }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Live Corrected Preview Wrap -->
+    <div id="view-corrected-wrap" style="display: none;">
+      <div style="padding: 0.5rem 1.25rem; background: #f0fdf4; border-bottom: 1px solid #bbf7d0; font-size: 0.8rem; color: #166534; font-weight: 600;">
+        ✓ Live Corrected Preview (Reflecting All Accepted Suggestions)
+      </div>
+      <div class="doc-page-body" id="live-corrected-text-body" style="background: #ffffff;">{{ version.current_text }}</div>
+    </div>
+
+    <!-- Extracted Facts & Palette Card -->
+    {% set details = version.extracted_details %}
+    {% if details %}
+      <div id="key-details" style="padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); background: var(--bg-subtle); font-size: 0.825rem;">
+        <strong>📋 Key Extracted Metadata:</strong>
+        <div style="display: flex; gap: 1rem; margin-top: 0.35rem; flex-wrap: wrap;">
+          <div><strong>Prices:</strong> {{ details.prices|join(', ') if details.prices else 'None' }}</div>
+          <div><strong>Claims:</strong> {{ details.claims|join(', ') if details.claims else 'None' }}</div>
+          <div><strong>Dates:</strong> {{ details.dates|join(', ') if details.dates else 'None' }}</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT PANEL: DETECTED ISSUES & INTELLIGENT SUGGESTION ENGINE -->
+  <div id="brand-issues">
+    <!-- Inspector Header & Filter Pills -->
+    <div class="card" style="margin-bottom: 1rem; padding: 0.85rem 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="font-size: 1.1rem; margin: 0;">🔍 AI Review Inspector ({{ issues|length }} Issues)</h3>
+        <span class="badge badge-neutral" style="font-size: 0.75rem;">Click an issue to navigate to page</span>
+      </div>
+
+      <!-- Filters -->
+      <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm btn-primary filter-pill" data-filter="all">All ({{ issues|length }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="critical">Critical ({{ version.critical_issues_count }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="high">High ({{ version.high_issues_count }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="medium">Medium ({{ version.medium_issues_count }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="low">Low ({{ version.low_issues_count }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="open">Open ({{ version.open_issues_count }})</button>
+        <button type="button" class="btn btn-sm btn-secondary filter-pill" data-filter="resolved">Resolved ({{ version.accepted_issues_count }})</button>
+      </div>
+    </div>
+
+    <!-- Issues Cards Container -->
+    <div id="issues-container">
+      {% if issues %}
+        {% for iss in issues %}
+          <div class="issue-card severity-{{ iss.display_severity|lower }}" 
+               id="issue-card-{{ iss.id }}"
+               data-issue-id="{{ iss.id }}" 
+               data-page-num="{{ iss.page_number }}"
+               data-severity="{{ iss.display_severity }}"
+               data-status="{{ iss.status }}"
+               data-snippet="{{ iss.snippet }}">
+            
+            <!-- Issue Card Top Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.3rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <code style="font-weight: 700; color: var(--primary); font-size: 0.85rem;">#ISS-{{ iss.id }}</code>
+                <span class="badge badge-neutral" style="font-size: 0.7rem;">p.{{ iss.page_number }} ({{ iss.section_heading }})</span>
+                <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ iss.review_category }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="badge badge-{{ iss.severity_badge_class }}" style="font-size: 0.725rem;">{{ iss.display_severity }}</span>
+                <span class="badge issue-status-badge badge-neutral" style="font-size: 0.7rem;">{{ iss.status }}</span>
+              </div>
+            </div>
+
+            <!-- Mistake Type Title -->
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem;">
+              {{ iss.mistake_type or iss.rule_id }}
+            </div>
+
+            <!-- 1. What is wrong? (Problematic Text) -->
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); margin-top: 0.4rem;">
+              Original Problematic Text:
+            </div>
+            <div class="problem-box">
+              "{{ iss.snippet }}"
+            </div>
+
+            <!-- 2. Why is it wrong? (Explanation & Rule Violated) -->
+            <div style="font-size: 0.85rem; color: var(--text-main); margin: 0.4rem 0; line-height: 1.45;">
+              <strong>Why it's wrong:</strong> {{ iss.why_it_matters }}
+            </div>
+
+            <!-- 3. AI Recommended Correction -->
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--success); margin-top: 0.4rem;">
+              AI Recommended Correction:
+            </div>
+            <div class="suggestion-box">
+              <span class="suggestion-text">{{ iss.improved_text or iss.suggestion }}</span>
+            </div>
+
+            <!-- Reviewer Notes / Comment (if present or editable) -->
+            {% if iss.reviewer_comment %}
+              <div style="font-size: 0.825rem; background: var(--bg-subtle); padding: 0.4rem 0.6rem; border-radius: 4px; margin-top: 0.4rem; border-left: 3px solid var(--info);">
+                <strong>Reviewer Comment:</strong> {{ iss.reviewer_comment }}
+              </div>
+            {% endif %}
+
+            <!-- Reviewer Note Input for Reviewers/Managers -->
+            {% if current_user.role_name in ['Reviewer', 'Manager'] %}
+              <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem;">
+                <input type="text" class="form-control reviewer-comment-input" placeholder="Add manual reviewer note..." value="{{ iss.reviewer_comment or '' }}" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                <button type="button" class="btn btn-sm btn-secondary btn-action-comment" data-issue-id="{{ iss.id }}">Save</button>
+              </div>
+            {% endif %}
+
+            <!-- 4. Action Buttons (Accept, Reject, Edit Manually) -->
+            <div class="issue-actions-bar">
+              <button type="button" class="btn-accept btn-action-accept" data-issue-id="{{ iss.id }}" title="Replace original text with AI improved version">
+                ✓ Accept Suggestion
+              </button>
+              <button type="button" class="btn-reject btn-action-reject" data-issue-id="{{ iss.id }}" title="Keep original text">
+                ✕ Reject
+              </button>
+              <button type="button" class="btn-edit-action btn-action-edit" data-issue-id="{{ iss.id }}" title="Customize correction text manually">
+                ✎ Edit Manually
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="card" style="text-align: center; padding: 2rem;">
+          <div style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.5rem;">✓</div>
+          <h3>Flawless Content — 0 Violations</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            This document meets all brand rules, pricing standards, tone guidelines, and legal compliance safeguards.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Reviewer Decision Panel (Safeguards Enforced) -->
+    <div class="card" id="reviewer-decision" style="margin-top: 1.5rem; border-top: 4px solid var(--primary);">
+      <div class="card-header">
+        <a href="#reviewer-decision" class="icon-heading-link">
+          <h3>⚖️ Reviewer Decision Panel</h3>
+        </a>
+        <span class="badge badge-neutral">Safeguards Enforced</span>
+      </div>
+
+      <!-- Safeguard Warnings -->
+      {% if version.status in ['Approved', 'Approve'] %}
+        <div class="alert alert-success" style="font-size: 0.875rem;">
+          <strong>✓ Version {{ version.version_number }} Approved for Publishing:</strong> This content has officially passed brand governance review.
+        </div>
+      {% elif 'Exception' in version.status %}
+        <div class="alert alert-warning" style="font-size: 0.875rem;">
+          <strong>⚠ Approved with Exception:</strong> This version is approved under a documented managerial exception.
+        </div>
+      {% elif is_own_upload and current_user.role_name == 'Reviewer' %}
+        <div class="alert alert-warning" style="font-size: 0.875rem;">
+          <strong>Review Blocked:</strong> You are the creator of this submission. Reviewers cannot approve their own uploads.
+        </div>
+      {% elif version.has_open_serious_issue %}
+        <div class="alert alert-danger" style="font-size: 0.875rem;">
+          <strong>Approval Blocked:</strong> Content with open Critical or Serious issues cannot be approved without an explicit written exception.
+        </div>
+      {% endif %}
+
+      <!-- Assigned Reviewer Rules (from Manager) -->
+      {% if assigned_reviewer_rules %}
+        <div style="background: var(--bg-subtle); border-radius: var(--radius); padding: 0.85rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <strong style="font-size: 0.9rem; color: var(--primary);">📋 Your Assigned Review Directives (from Manager):</strong>
+            <span class="badge badge-info" style="font-size: 0.7rem;">Varies per Reviewer</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            {% for ar in assigned_reviewer_rules %}
+              <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.825rem; cursor: pointer; background: #ffffff; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border);">
+                <input type="checkbox" style="margin-top: 0.2rem;" {% if version.status in ['Approved', 'Approve'] %}checked disabled{% endif %}>
+                <div>
+                  <strong>[{{ ar.category }}] {{ ar.title }}</strong>
+                  <span class="badge badge-{% if ar.severity == 'Mandatory' %}serious{% else %}neutral{% endif %}" style="font-size: 0.65rem; margin-left: 0.3rem;">{{ ar.severity }}</span>
+                  <div style="color: var(--text-muted); margin-top: 0.15rem;">{{ ar.instructions }}</div>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Existing Recorded Decision -->
+      {% if version.decision %}
+        <div style="padding: 0.85rem; background: var(--bg-subtle); border-radius: var(--radius); margin-bottom: 1rem; border: 1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>Current Recorded Decision:</strong>
+            <span class="badge badge-{% if 'Approve' in version.decision.outcome %}success{% else %}serious{% endif %}">
+              {{ version.status }}
+            </span>
+          </div>
+          <p style="margin: 0.35rem 0 0; font-size: 0.9rem;">
+            Outcome: <strong>{{ version.decision.outcome }}</strong> by <em>{{ version.decision.reviewer.full_name }}</em> on {{ version.decision.created_at.strftime('%b %d, %Y %H:%M') }}
+          </p>
+          {% if version.decision.reason %}
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem; border-top: 1px dashed var(--border); padding-top: 0.35rem;">
+              <strong>Review Notes / Exception Reason:</strong> {{ version.decision.reason }}
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if current_user.role_name in ['Reviewer', 'Manager'] %}
+        <form method="POST" action="{{ url_for('content.record_decision', content_id=content.id, v=version.version_number) }}" novalidate>
+          {{ decision_form.hidden_tag() }}
+
+          <div class="form-group">
+            {{ decision_form.outcome.label(class="form-label") }}
+            {{ decision_form.outcome(class="form-control", id="decision-outcome") }}
+          </div>
+
+          <div class="form-group">
+            {{ decision_form.reason.label(class="form-label") }}
+            {{ decision_form.reason(class="form-control", rows="3", placeholder="Provide review feedback or mandatory written justification if granting an exception...") }}
+            <div class="form-text">Mandatory if approving with exception.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;" {% if is_own_upload and current_user.role_name == 'Reviewer' %}disabled{% endif %}>
+            Submit Review Decision
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    <!-- Creator Action: Submit Revision -->
+    <div class="card" id="creator-action" style="margin-top: 1.5rem;">
+      <div class="card-header">
+        <a href="#creator-action" class="icon-heading-link">
+          <h3>✍️ Creator Action: Submit Revision</h3>
+        </a>
+        <span class="badge badge-neutral">Auto Re-check</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Upload an updated document or paste revised copy. The system will automatically re-analyze the new version.
+      </p>
+
+      <form method="POST" action="{{ url_for('content.upload_version', content_id=content.id) }}" enctype="multipart/form-data" novalidate>
+        {{ upload_form.hidden_tag() }}
+
+        <div class="form-group">
+          {{ upload_form.file.label(class="form-label") }}
+          {{ upload_form.file(class="form-control") }}
+          <div class="form-text">Supported formats: PDF, DOC/DOCX, PPT/PPTX, XLS/XLSX, CSV, TXT, PNG, JPG</div>
+        </div>
+
+        <div class="form-group">
+          {{ upload_form.pasted_text.label(class="form-label") }}
+          {{ upload_form.pasted_text(class="form-control", rows="5", placeholder="Or paste updated text directly...") }}
+        </div>
+
+        <div class="form-group">
+          {{ upload_form.notes.label(class="form-label") }}
+          {{ upload_form.notes(class="form-control", placeholder="e.g. Corrected price to ₹999/month, replaced 'users' with 'members'") }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Upload New Version &amp; Re-analyze</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Highlight problematic snippets in the document viewer text
+document.addEventListener('DOMContentLoaded', () => {
+  const issueCards = document.querySelectorAll('.issue-card');
+  issueCards.forEach(card => {
+    const issueId = card.getAttribute('data-issue-id');
+    const snippet = card.getAttribute('data-snippet');
+    const pageNum = card.getAttribute('data-page-num') || '1';
+
+    const pageTextEl = document.getElementById(`doc-page-text-${pageNum}`);
+    if (pageTextEl && snippet) {
+      const cleanSnippet = snippet.replace(/^\.\.\.|\.\.\.$/g, '').trim();
+      if (cleanSnippet.length > 3 && pageTextEl.innerHTML.includes(cleanSnippet)) {
+        const replacement = `<mark class="issue-highlight" data-issue-id="${issueId}" id="mark-${issueId}" title="Issue #ISS-${issueId}: Click to inspect">${cleanSnippet}</mark>`;
+        pageTextEl.innerHTML = pageTextEl.innerHTML.replace(cleanSnippet, replacement);
+      }
+    }
+  });
+
+  // Re-bind mark click events after highlighting
+  document.querySelectorAll('mark.issue-highlight').forEach(mark => {
+    mark.addEventListener('click', () => {
+      const issueId = mark.getAttribute('data-issue-id');
+      const card = document.querySelector(`.issue-card[data-issue-id="${issueId}"]`);
+      if (card) {
+        document.querySelectorAll('.issue-card').forEach(c => c.classList.remove('active-issue'));
+        card.classList.add('active-issue');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

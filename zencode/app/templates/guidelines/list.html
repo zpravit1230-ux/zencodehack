@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Guidelines - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Brand Guidelines Engine</h1>
+    <p style="color: var(--text-muted);">Configure the rules that power automated content checks. Only active rules are evaluated.</p>
+  </div>
+  <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+    <a href="{{ url_for('guidelines.trained_rules') }}" class="btn btn-secondary" title="View the 20 trained governance rules">⚡ Trained Dataset (BG001-BG020)</a>
+    <a href="{{ url_for('guidelines.add_guideline') }}" class="btn btn-primary">+ Add New Rule</a>
+  </div>
+</div>
+
+<!-- Category Tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+  <a href="{{ url_for('guidelines.list_guidelines') }}" class="btn btn-sm {% if not selected_category %}btn-primary{% else %}btn-secondary{% endif %}">All Categories ({{ guidelines|length }})</a>
+  {% for cat in categories %}
+    <a href="{{ url_for('guidelines.list_guidelines', category=cat) }}" class="btn btn-sm {% if selected_category == cat %}btn-primary{% else %}btn-secondary{% endif %}">
+      {{ cat }}
+    </a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <a href="{{ url_for('guidelines.list_guidelines') }}" class="icon-heading-link" title="Click to view all guidelines">
+      <h2>📜 Rules &amp; Standards {% if selected_category %}({{ selected_category }}){% endif %}</h2>
+    </a>
+  </div>
+
+  {% if guidelines %}
+    <div class="table-responsive">
+      <table class="table" aria-label="Brand guidelines table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Rule Key / Flagged Term</th>
+            <th>Guidance / Approved Fact / Value</th>
+            <th>Context / Notes</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in guidelines %}
+            <tr>
+              <td>
+                <span class="badge badge-{% if r.type == 'WORDS' %}info{% elif r.type == 'DETAILS' %}warning{% elif r.type == 'PROMISES' %}serious{% else %}neutral{% endif %}">
+                  {{ r.type }}
+                </span>
+              </td>
+              <td><strong>{{ r.key }}</strong></td>
+              <td style="max-width: 320px; word-break: break-word;">
+                {% if r.type == 'PALETTE' %}
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="display:inline-block; width:20px; height:20px; border-radius:3px; border:1px solid #000; background-color:{{ r.value }};"></span>
+                    <code>{{ r.value }}</code>
+                  </div>
+                {% else %}
+                  {{ r.value }}
+                {% endif %}
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">{{ r.description or '-' }}</td>
+              <td>
+                {% if r.active %}
+                  <span class="badge badge-success">Active</span>
+                {% else %}
+                  <span class="badge badge-neutral">Inactive</span>
+                {% endif %}
+              </td>
+              <td style="white-space: nowrap;">
+                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                  <a href="{{ url_for('guidelines.edit_guideline', guideline_id=r.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                  
+                  <form method="POST" action="{{ url_for('guidelines.toggle_guideline', guideline_id=r.id) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-secondary" title="Toggle active status">
+                      {{ 'Disable' if r.active else 'Enable' }}
+                    </button>
+                  </form>
+
+                  <form method="POST" action="{{ url_for('guidelines.delete_guideline', guideline_id=r.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete rule: {{ r.key }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-danger" title="Delete rule">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <a href="{{ url_for('guidelines.add_guideline') }}" class="icon-heading-link" style="display:inline-block; margin-bottom: 0.5rem;" title="Click to add a new guideline">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
+        <h3>No guidelines found</h3>
+      </a>
+      <p style="margin-bottom: 1.25rem;">Add brand guidelines to automatically flag inconsistencies in copy and design.</p>
+      <a href="{{ url_for('guidelines.add_guideline') }}" class="btn btn-primary">+ Add Rule</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

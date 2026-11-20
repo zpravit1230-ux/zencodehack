@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Compliance Reports - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1>Brand Guard Compliance Reports</h1>
+    <p style="color: var(--text-muted);">Key performance metrics on brand rule violations, review turnaround times, and team publishing accuracy.</p>
+  </div>
+  <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-secondary">View Event Logs</a>
+</div>
+
+<!-- High-Level KPI Grid -->
+<div class="grid-4" style="margin-bottom: 2rem;">
+  <a href="#review-outcomes" class="stat-card card-clickable" title="Click to view review outcome metrics">
+    <div class="stat-number" style="color: var(--primary);">{{ approval_rate }}%</div>
+    <div class="stat-label">Approval Rate</div>
+  </a>
+  <a href="#issues-by-category" class="stat-card card-clickable" title="Click to view issues by brand category">
+    <div class="stat-number" style="color: var(--warning);">{{ total_issues }}</div>
+    <div class="stat-label">Total Issues Caught</div>
+  </a>
+  <a href="#review-outcomes" class="stat-card card-clickable" title="Click to view average fix & turnaround details">
+    <div class="stat-number" style="color: var(--info);">{{ avg_fix_time }}h</div>
+    <div class="stat-label">Average Fix Time</div>
+  </a>
+  <a href="{{ url_for('admin.audit_logs', action='EXCEPTION') }}" class="stat-card card-clickable" title="Click to view exception events in audit log">
+    <div class="stat-number" style="color: var(--warning);">{{ exceptions_count }}</div>
+    <div class="stat-label">Exceptions Granted</div>
+  </a>
+</div>
+
+<div class="grid-2">
+  <!-- Issues by Category Card -->
+  <div class="card" id="issues-by-category">
+    <div class="card-header">
+      <a href="#issues-by-category" class="icon-heading-link">
+        <h2>📊 Issues by Brand Category</h2>
+      </a>
+      <span class="badge badge-neutral">Pre-Publication Catches</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+      {% for cat, cnt in category_counts.items() %}
+        {% set pct = (cnt / total_issues * 100)|round(1) if total_issues > 0 else 0 %}
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem;">
+            <span>{{ cat }}</span>
+            <span>{{ cnt }} ({{ pct }}%)</span>
+          </div>
+          <div style="height: 10px; background: var(--bg-subtle); border-radius: 5px; overflow: hidden; border: 1px solid var(--border);">
+            <div style="height: 100%; width: {{ pct }}%; background-color: {% if cat == 'WORDS' %}var(--info){% elif cat == 'DETAILS' %}var(--warning){% elif cat == 'PROMISES' %}var(--danger){% elif cat == 'TONE' %}var(--primary){% else %}var(--accent){% endif %};"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Review Decisions Summary Card -->
+  <div class="card" id="review-outcomes">
+    <div class="card-header">
+      <a href="#review-outcomes" class="icon-heading-link">
+        <h2>🛡️ Review Outcomes &amp; Integrity</h2>
+      </a>
+      <span class="badge badge-success">Human in the Loop</span>
+    </div>
+
+    <div style="margin-top: 0.5rem; font-size: 0.9rem; line-height: 1.8;">
+      <p>
+        <strong>Total Review Decisions Recorded:</strong> {{ total_decisions }}
+      </p>
+      <p>
+        <strong>Standard Clear Approvals:</strong> {{ total_decisions - exceptions_count if total_decisions >= exceptions_count else 0 }}
+      </p>
+      <p>
+        <strong>Approvals with Written Exception:</strong> {{ exceptions_count }}
+      </p>
+      <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+        BrandGuard's automated checks ensure that 100% of published material has either passed all brand rules or contains an authorized manager exception on file.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

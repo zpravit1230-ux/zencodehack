@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_name }}{% endblock %} - Brand Review Space</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <nav class="navbar" aria-label="Main Navigation">
+      <a href="{{ url_for('main.index') }}" class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span>BrandGuard <span style="color:var(--accent);">AI</span></span>
+        <span class="badge-tag">{{ brand_name }}</span>
+      </a>
+
+      <ul class="nav-links">
+        {% if current_user.is_authenticated %}
+          {% if current_user.role_name == 'Creator' %}
+            <li><a href="{{ url_for('main.creator_dashboard') }}" class="{% if request.endpoint == 'main.creator_dashboard' %}active{% endif %}">My Content</a></li>
+            <li><a href="{{ url_for('content.new_content') }}" class="{% if request.endpoint == 'content.new_content' %}active{% endif %}">+ New Content</a></li>
+          {% elif current_user.role_name == 'Reviewer' %}
+            <li><a href="{{ url_for('main.reviewer_dashboard') }}" class="{% if request.endpoint == 'main.reviewer_dashboard' %}active{% endif %}">Review Queue</a></li>
+            <li><a href="{{ url_for('content.new_content') }}" class="{% if request.endpoint == 'content.new_content' %}active{% endif %}">+ New Content</a></li>
+          {% elif current_user.role_name == 'Manager' %}
+            <li><a href="{{ url_for('main.manager_dashboard') }}" class="{% if request.endpoint == 'main.manager_dashboard' %}active{% endif %}">Dashboard</a></li>
+            <li><a href="{{ url_for('content.new_content') }}" class="{% if request.endpoint == 'content.new_content' %}active{% endif %}">+ New Content</a></li>
+            <li><a href="{{ url_for('guidelines.list_guidelines') }}" class="{% if 'guidelines' in request.endpoint %}active{% endif %}">Brand Guidelines</a></li>
+            <li><a href="{{ url_for('admin.manager_profile') }}" class="{% if 'profile' in request.endpoint or 'reviewer_rule' in request.endpoint %}active{% endif %}">Reviewer Rules</a></li>
+            <li><a href="{{ url_for('admin.users') }}" class="{% if request.endpoint == 'admin.users' %}active{% endif %}">Team Users</a></li>
+            <li><a href="{{ url_for('admin.audit_logs') }}" class="{% if request.endpoint == 'admin.audit_logs' %}active{% endif %}">Audit Log</a></li>
+            <li><a href="{{ url_for('admin.reports') }}" class="{% if request.endpoint == 'admin.reports' %}active{% endif %}">Reports</a></li>
+          {% endif %}
+
+          <li class="nav-user">
+            {% if current_user.role_name == 'Manager' %}
+              <a href="{{ url_for('admin.manager_profile') }}" style="color:inherit; text-decoration:none;" title="View Manager Profile &amp; Reviewer Directives">
+                <span>{{ current_user.full_name }}</span>
+                <span class="badge badge-neutral" style="background:#ffffff; color:#1A1A1A;">{{ current_user.role_name }}</span>
+              </a>
+            {% else %}
+              <span>{{ current_user.full_name }}</span>
+              <span class="badge badge-neutral" style="background:#ffffff; color:#1A1A1A;">{{ current_user.role_name }}</span>
+            {% endif %}
+          </li>
+          <li><a href="{{ url_for('auth.logout') }}" style="color:#fca5a5;">Log out</a></li>
+        {% else %}
+          <li><a href="{{ url_for('auth.login') }}">Log In</a></li>
+          <li><a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-accent" style="color:#1A1A1A;">Register</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </header>
+
+  <main class="main-container" id="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>&copy; 2026 BrandGuard AI &bull; Guarding brand consistency for <strong>{{ brand_name }}</strong></p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

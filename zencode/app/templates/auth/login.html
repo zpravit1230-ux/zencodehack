@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+  <div class="card">
+    <div class="card-header">
+      <a href="{{ url_for('auth.login') }}" class="icon-heading-link" title="Click to refresh sign in">
+        <h2>🔐 Sign In</h2>
+      </a>
+      <span class="badge badge-neutral">Secure Auth</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="email", placeholder="you@lumora.demo", autofocus=True) }}
+        {% for error in form.email.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="••••••••") }}
+        {% for error in form.password.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+        {{ form.remember_me(id="remember_me") }}
+        <label for="remember_me" style="font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">Remember me on this browser</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+    </form>
+
+    <div style="margin-top: 1.25rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a>
+    </div>
+  </div>
+
+  <!-- DEMO ACCOUNTS BOX (Clearly labelled demo only) -->
+  <div class="demo-accounts-box">
+    <h4>
+      <span>🔑 Demo Accounts (Click to Auto-fill)</span>
+      <span class="badge badge-warning" style="font-size: 0.7rem;">DEMO ONLY</span>
+    </h4>
+    <p style="font-size: 0.8rem; color: var(--text-muted);">Pre-configured team accounts to test role-based access:</p>
+    
+    <div class="demo-grid">
+      <div class="demo-pill" data-email="manager@lumora.demo" data-pass="Manager@123" tabindex="0" role="button" aria-label="Load Manager demo account">
+        <strong>Manager</strong><br>
+        <span style="color:var(--text-muted);">manager@lumora.demo</span><br>
+        <code>Manager@123</code>
+      </div>
+
+      <div class="demo-pill" data-email="reviewer@lumora.demo" data-pass="Reviewer@123" tabindex="0" role="button" aria-label="Load Reviewer demo account">
+        <strong>Reviewer</strong><br>
+        <span style="color:var(--text-muted);">reviewer@lumora.demo</span><br>
+        <code>Reviewer@123</code>
+      </div>
+
+      <div class="demo-pill" data-email="priya@lumora.demo" data-pass="Creator@123" tabindex="0" role="button" aria-label="Load Priya Creator demo account">
+        <strong>Creator (Priya)</strong><br>
+        <span style="color:var(--text-muted);">priya@lumora.demo</span><br>
+        <code>Creator@123</code>
+      </div>
+
+      <div class="demo-pill" data-email="arjun@lumora.demo" data-pass="Creator@123" tabindex="0" role="button" aria-label="Load Arjun Creator demo account">
+        <strong>Creator (Arjun)</strong><br>
+        <span style="color:var(--text-muted);">arjun@lumora.demo</span><br>
+        <code>Creator@123</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
